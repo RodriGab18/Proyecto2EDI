@@ -4,3 +4,4 @@ class NodoCancion:
         self.artista = artista
         self.duracion = duracion
         self.rutaArchivo = rutaArchivo
+    
