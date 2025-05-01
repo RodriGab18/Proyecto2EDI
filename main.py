@@ -3,6 +3,7 @@ from NodoCancion import NodoCancion
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
+from tkinter import font as tkFont
 from mutagen.mp3 import MP3
 import pygame
 import os
@@ -135,20 +136,110 @@ def mostrarAcercaDe():
     frameInicio.pack_forget()
     frameAcercaDe.pack(pady=20)
 
-# Funciones sobre el funcioamiento del reproductor.
+# Funciones para diseño de UI
+
+def estiloWindowsXP():
+    style = ttk.Style()
+    style.theme_use('winnative')  # Usar tema nativo de Windows
+    
+    estiloBotones = {
+        "bg": "#ece9d8",  # Color clásico XP
+        "fg": "black",
+        "font": ("Tahoma", 8),
+        "relief": tk.RAISED,
+        "borderwidth": 2,
+        "activebackground": "#316ac5",
+        "activeforeground": "white"
+    }
+    
+    estiloEtiquetas = {
+        "bg": "#ece9d8",
+        "fg": "black",
+        "font": ("Tahoma", 8)
+    }
+    
+    return estiloBotones, estiloEtiquetas
+
+COLORES = {
+    "primary": "#5D1049",     # Morado oscuro
+    "secondary": "#E30425",   # Rojo vibrante
+    "background": "#F8F9FA",  # Gris claro
+    "surface": "#FFFFFF",     # Blanco
+    "on_primary": "#FFFFFF",  # Texto sobre primary
+    "on_secondary": "#000000",# Texto sobre secondary
+    "on_background": "#212529",# Texto principal
+    "on_surface": "#212529"   # Texto en superficies
+}
+def configurar_estilos():
+    style = ttk.Style()
+    
+    # Estilo general
+    style.theme_create('musicplayer', parent='clam', settings={
+        'TFrame': {
+            'configure': {'background': COLORES['background']}
+        },
+        'TLabel': {
+            'configure': {
+                'background': COLORES['background'],
+                'foreground': COLORES['on_background'],
+                'font': ('Segoe UI', 10)
+            }
+        },
+        'TButton': {
+            'configure': {
+                'background': COLORES['primary'],
+                'foreground': COLORES['on_primary'],
+                'font': ('Segoe UI', 10, 'bold'),
+                'borderwidth': 1,
+                'relief': 'raised',
+                'padding': (10, 5)
+            },
+            'map': {
+                'background': [
+                    ('pressed', COLORES['secondary']),
+                    ('active', COLORES['secondary'])
+                ],
+                'foreground': [
+                    ('pressed', COLORES['on_secondary']),
+                    ('active', COLORES['on_secondary'])
+                ]
+            }
+        },
+        'TProgressbar': {
+            'configure': {
+                'thickness': 10,
+                'troughcolor': COLORES['surface'],
+                'background': COLORES['secondary'],
+                'lightcolor': COLORES['secondary'],
+                'darkcolor': COLORES['secondary']
+            }
+        }
+    })
+    style.theme_use('musicplayer')
+
+
+# Funciones sobre el funcionamiento del reproductor.
 
 def cargarCanciones():
-    carpeta = filedialog.askdirectory(title="Seleccionar carpeta de canciones")
-    if not carpeta:
-        return
-    
-    for archivo in os.listdir(carpeta):
-        if archivo.endswith('.mp3'):
-            ruta = os.path.join(carpeta, archivo)
-            cancion = obtenerMetadata(ruta)
-            listaReproduccion.agregar(cancion)
-    
-    etiquetaEstado.config(text=f"{len(os.listdir(carpeta))} canciones cargadas")
+    try:
+        carpeta = filedialog.askdirectory(title="Seleccionar carpeta de canciones")
+        if not carpeta:
+            return
+        
+        canciones_cargadas = 0
+        for archivo in os.listdir(carpeta):
+            if archivo.endswith('.mp3'):
+                ruta = os.path.join(carpeta, archivo)
+                try:
+                    cancion = obtenerMetadata(ruta)
+                    listaReproduccion.agregar(cancion)
+                    canciones_cargadas += 1
+                except Exception as e:
+                    print(f"Error al cargar {archivo}: {str(e)}")
+        
+        etiquetaEstado.config(text=f"{canciones_cargadas} canciones cargadas")
+    except Exception as e:
+        etiquetaEstado.config(text=f"Error: {str(e)}")
 
 def actualizarInfoCancion():
     if listaReproduccion.actual:
@@ -184,49 +275,134 @@ ventana = tk.Tk()
 ventana.title("Reproductor de Música Avanzado")
 ventana.geometry("900x600")
 
-# Frame Inicio
-frameInicio = tk.Frame(ventana)
-tk.Label(frameInicio, text="Reproductor de música", font=('Arial', 14)).pack(pady=20)
+estiloBotones, estiloEtiquetas = estiloWindowsXP()
 
-tk.Button(frameInicio, text="Cargar Canciones", command=cargarCanciones, width=20).pack(pady=10)
-tk.Button(frameInicio, text="Ir al Reproductor", command=mostrarReproductor, width=20).pack(pady=10)
-tk.Button(frameInicio, text="Canciones en el repertorio", command=mostrarListaCanciones, width=20).pack(pady=10)
-tk.Button(frameInicio, text="Acerca de", command=mostrarAcercaDe, width=20).pack(pady=10)
-etiquetaEstado = tk.Label(frameInicio, text="")
+# Frame Inicio
+frameInicio = tk.Frame(ventana, bg="#f0f0f0")
+tk.Label(
+    frameInicio, 
+    text="Reproductor de música", 
+    **estiloEtiquetas
+).pack(pady=20)
+
+tk.Button(
+    frameInicio, 
+    text="Cargar Canciones", 
+    command=cargarCanciones, 
+    width=20,
+    **estiloBotones
+).pack(pady=10)
+
+tk.Button(
+    frameInicio, 
+    text="Ir al Reproductor", 
+    command=mostrarReproductor, 
+    width=20,
+    **estiloBotones
+).pack(pady=10)
+
+tk.Button(
+    frameInicio, 
+    text="Canciones en el repertorio", 
+    command=mostrarListaCanciones, 
+    width=20,
+    **estiloBotones
+).pack(pady=10)
+
+tk.Button(
+    frameInicio, 
+    text="Acerca de", 
+    command=mostrarAcercaDe, 
+    width=20,
+    **estiloBotones
+).pack(pady=10)
+
+etiquetaEstado = tk.Label(frameInicio, text="", **estiloEtiquetas)
 etiquetaEstado.pack(pady=10)
 
-
-# Frame Reproductor
-frameReproductor = tk.Frame(ventana)
-etiquetaCancion = tk.Label(frameReproductor, text="No hay canción seleccionada", font=('Arial', 12), justify=tk.LEFT)
+# --- Frame Reproductor ---
+frameReproductor = tk.Frame(ventana, bg="#f0f0f0")
+etiquetaCancion = tk.Label(
+    frameReproductor, 
+    text="No hay canción seleccionada", 
+    **estiloEtiquetas
+)
 etiquetaCancion.pack(pady=20)
 
-frameControles = tk.Frame(frameReproductor)
+frameControles = tk.Frame(frameReproductor, bg="#f0f0f0")
 frameControles.pack(pady=15)
 
-tk.Button(frameControles, text="⏮ Anterior", command=cancionAnterior, width=12).pack(side=tk.LEFT, padx=5)
-tk.Button(frameControles, text="⏯ Play/Pause", command=pausarCancion, width=12).pack(side=tk.LEFT, padx=5)
-tk.Button(frameControles, text="⏭ Siguiente", command=cancionSiguiente, width=12).pack(side=tk.LEFT, padx=5)
+tk.Button(
+    frameControles, 
+    text="⏮ Anterior", 
+    command=cancionAnterior, 
+    width=12,
+    **estiloBotones
+).pack(side=tk.LEFT, padx=5)
 
-tk.Button(frameReproductor, text="Regresar", command=regresarInicio).pack(pady=20)
+tk.Button(
+    frameControles, 
+    text="⏯ Play/Pause", 
+    command=pausarCancion, 
+    width=12,
+    **estiloBotones
+).pack(side=tk.LEFT, padx=5)
 
-# Frame Canciones Ingresadas
-frameCancionesIngresadas = tk.Frame(ventana)
-etiquetaTitulo = tk.Label(frameCancionesIngresadas, text="Estas son las canciones en el repertorio.").pack(pady=10)
+tk.Button(
+    frameControles, 
+    text="⏭ Siguiente", 
+    command=cancionSiguiente, 
+    width=12,
+    **estiloBotones
+).pack(side=tk.LEFT, padx=5)
 
+tk.Button(
+    frameReproductor, 
+    text="Regresar", 
+    command=regresarInicio,
+    **estiloBotones
+).pack(pady=20)
 
-# Frame Acerca de
-frameAcercaDe = tk.Frame(ventana)
-etiquetaAcerca = tk.Label(
-    frameAcercaDe, 
-    text="Reproductor de música - Estructura de datos.\nVersión 0.6\n"
-         "Desarrollado por Rodrigo Gabriel Pérez Vásquez, carnet 1576224\n"
-         "Link de repositorio en Github: https://github.com/RodriGab18/Proyecto2EDI"
+progress = ttk.Progressbar(
+    frameReproductor, 
+    orient='horizontal', 
+    length=300, 
+    mode='determinate'
 )
-etiquetaAcerca.pack(pady=20)
+progress.pack(pady=10)
 
-buttonRegresar = tk.Button(frameAcercaDe, text="Regresar al inicio", command=regresarInicio)
-buttonRegresar.pack(pady=10)
+# Etiqueta de tiempo
+label_tiempo = ttk.Label(
+    frameReproductor,
+    text="00:00 / 00:00",
+    font=("Tahoma", 8)
+)
+label_tiempo.pack()
+
+# --- Frame Canciones Ingresadas ---
+frameCancionesIngresadas = tk.Frame(ventana, bg="#f0f0f0")
+tk.Label(
+    frameCancionesIngresadas, 
+    text="Estas son las canciones en el repertorio.", 
+    **estiloEtiquetas
+).pack(pady=10)
+
+# --- Frame Acerca de ---
+frameAcercaDe = tk.Frame(ventana, bg="#f0f0f0")
+tk.Label(
+    frameAcercaDe, 
+    text="Reproductor de música - Estructura de datos.\nVersión 0.6.1\n"
+         "Desarrollado por Rodrigo Gabriel Pérez Vásquez, carnet 1576224\n"
+         "Link de repositorio en Github: https://github.com/RodriGab18/Proyecto2EDI",
+    **estiloEtiquetas
+).pack(pady=20)
+
+tk.Button(
+    frameAcercaDe, 
+    text="Regresar al inicio", 
+    command=regresarInicio,
+    **estiloBotones
+).pack(pady=10)
 
 frameInicio.pack()
 ventana.mainloop()
