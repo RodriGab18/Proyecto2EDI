@@ -3,7 +3,6 @@ from NodoCancion import NodoCancion
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
-from tkinter import font as tkFont
 from mutagen.mp3 import MP3
 import pygame
 import os
@@ -36,20 +35,22 @@ def mostrarCancionesIngresadas():
     frameInicio.pack_forget()
 
 def mostrarListaCanciones():
-    ventanaLista = tk.Toplevel(ventana)
-    ventanaLista.title("Lista Completa de Canciones")
-    ventanaLista.geometry("900x600")
-    
-    framePrincipal = tk.Frame(ventanaLista)
-    framePrincipal.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-    
-    frameControladores = tk.Frame(framePrincipal)
+    for widget in frameCancionesIngresadas.winfo_children():
+        widget.destroy()
+
+    tk.Label(
+        frameCancionesIngresadas, 
+        text="Estas son las canciones en el repertorio.", 
+        bg="#f0f0f0"
+    ).pack(pady=10)
+
+    frameControladores = tk.Frame(frameCancionesIngresadas)
     frameControladores.pack(fill=tk.X, pady=(0, 10))
-    
-    tk.Button(frameControladores, text="Cerrar", command=ventanaLista.destroy).pack(side=tk.RIGHT)
-    
+
+    tk.Button(frameControladores, text="Cerrar", command=lambda: limpiarFrame()).pack(side=tk.RIGHT)
+
     tree = ttk.Treeview(
-        framePrincipal,
+        frameCancionesIngresadas,
         columns=('nombre', 'artista', 'duracion', 'acciones'),
         show='headings',
         selectmode='browse'
@@ -60,12 +61,12 @@ def mostrarListaCanciones():
     tree.heading('duracion', text='Duración')
     tree.heading('acciones', text='Acciones')
     
-    tree.column('nombre', width=250)
-    tree.column('artista', width=200)
-    tree.column('duracion', width=100)
-    tree.column('acciones', width=100)
+    tree.column('nombre', width=150)
+    tree.column('artista', width=100)
+    tree.column('duracion', width=50)
+    tree.column('acciones', width=50)
     
-    scrollbar = ttk.Scrollbar(framePrincipal, orient=tk.VERTICAL, command=tree.yview)
+    scrollbar = ttk.Scrollbar(frameCancionesIngresadas, orient=tk.VERTICAL, command=tree.yview)
     tree.configure(yscroll=scrollbar.set)
     scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
     tree.pack(fill=tk.BOTH, expand=True)
@@ -76,39 +77,32 @@ def mostrarListaCanciones():
         nodo = listaReproduccion.inicio
         while True:
             cancion = nodo.dato
-            item = tree.insert('', tk.END,
-                             values=(cancion.nombreCancion, 
-                                     cancion.artista, 
-                                     cancion.duracion,
-                                     "Eliminar"))
+            item = tree.insert('', tk.END, values=(cancion.nombreCancion, cancion.artista, cancion.duracion, "Eliminar"))
             itemANodo[item] = nodo
             nodo = nodo.siguiente
             if nodo == listaReproduccion.inicio:
                 break
-    
+
     def eliminarCancion():
         seleccionado = tree.focus()
         if seleccionado:
             nodo = itemANodo[seleccionado]
-            
             if listaReproduccion.actual == nodo:
                 pygame.mixer.music.stop()
                 listaReproduccion.actual = None
             
             listaReproduccion.eliminar(nodo)
-            
             tree.delete(seleccionado)
             del itemANodo[seleccionado]
-            
             etiquetaEstado.config(text=f"Canción eliminada: {nodo.dato.nombreCancion}")
-    
+
     def reproducirSeleccion(event):
         seleccionado = tree.focus()
         if seleccionado:
             nodo = itemANodo[seleccionado]
             listaReproduccion.actual = nodo
             reproducirCancion()
-    
+
     btn_eliminar = tk.Button(
         frameControladores,
         text="Eliminar Selección",
@@ -117,15 +111,14 @@ def mostrarListaCanciones():
         fg='white'
     )
     btn_eliminar.pack(side=tk.LEFT)
-    
+
     tree.bind('<Double-1>', reproducirSeleccion)
-    
-    ventanaLista.update_idletasks()
-    ancho = ventanaLista.winfo_width()
-    alto = ventanaLista.winfo_height()
-    x = (ventanaLista.winfo_screenwidth() // 2) - (ancho // 2)
-    y = (ventanaLista.winfo_screenheight() // 2) - (alto // 2)
-    ventanaLista.geometry(f'+{x}+{y}')
+
+def limpiarFrame():
+    for widget in frameCancionesIngresadas.winfo_children():
+        widget.destroy()
+    tk.Label(frameCancionesIngresadas, text="Estas son las canciones en el repertorio.", bg="#f0f0f0").pack(pady=10)
+
 
 def regresarInicio():
     frameReproductor.pack_forget()
@@ -138,86 +131,14 @@ def mostrarAcercaDe():
 
 # Funciones para diseño de UI
 
-def estiloWindowsXP():
-    style = ttk.Style()
-    style.theme_use('winnative')  # Usar tema nativo de Windows
-    
-    estiloBotones = {
-        "bg": "#ece9d8",  # Color clásico XP
-        "fg": "black",
-        "font": ("Tahoma", 8),
-        "relief": tk.RAISED,
-        "borderwidth": 2,
-        "activebackground": "#316ac5",
-        "activeforeground": "white"
-    }
-    
-    estiloEtiquetas = {
-        "bg": "#ece9d8",
-        "fg": "black",
-        "font": ("Tahoma", 8)
-    }
-    
-    return estiloBotones, estiloEtiquetas
 
 COLORES = {
-    "primary": "#5D1049",     # Morado oscuro
-    "secondary": "#E30425",   # Rojo vibrante
-    "background": "#F8F9FA",  # Gris claro
-    "surface": "#FFFFFF",     # Blanco
-    "on_primary": "#FFFFFF",  # Texto sobre primary
-    "on_secondary": "#000000",# Texto sobre secondary
-    "on_background": "#212529",# Texto principal
-    "on_surface": "#212529"   # Texto en superficies
+    "fondo": "#2E0249",       
+    "widgets": "#570A57",     
+    "botones": "#A91079",     
+    "texto": "#F806CC",       
+    "hover": "#3D0C5A"        
 }
-def configurar_estilos():
-    style = ttk.Style()
-    
-    # Estilo general
-    style.theme_create('musicplayer', parent='clam', settings={
-        'TFrame': {
-            'configure': {'background': COLORES['background']}
-        },
-        'TLabel': {
-            'configure': {
-                'background': COLORES['background'],
-                'foreground': COLORES['on_background'],
-                'font': ('Segoe UI', 10)
-            }
-        },
-        'TButton': {
-            'configure': {
-                'background': COLORES['primary'],
-                'foreground': COLORES['on_primary'],
-                'font': ('Segoe UI', 10, 'bold'),
-                'borderwidth': 1,
-                'relief': 'raised',
-                'padding': (10, 5)
-            },
-            'map': {
-                'background': [
-                    ('pressed', COLORES['secondary']),
-                    ('active', COLORES['secondary'])
-                ],
-                'foreground': [
-                    ('pressed', COLORES['on_secondary']),
-                    ('active', COLORES['on_secondary'])
-                ]
-            }
-        },
-        'TProgressbar': {
-            'configure': {
-                'thickness': 10,
-                'troughcolor': COLORES['surface'],
-                'background': COLORES['secondary'],
-                'lightcolor': COLORES['secondary'],
-                'darkcolor': COLORES['secondary']
-            }
-        }
-    })
-    style.theme_use('musicplayer')
-
-
 # Funciones sobre el funcionamiento del reproductor.
 
 def cargarCanciones():
@@ -269,63 +190,62 @@ def cancionSiguiente():
         listaReproduccion.actual = listaReproduccion.actual.siguiente
         reproducirCancion()
 
+
 # Interfaz gráfica del reproductor
 
 ventana = tk.Tk()
-ventana.title("Reproductor de Música Avanzado")
+ventana.title("Reproductor de Música")
 ventana.geometry("900x600")
 
-estiloBotones, estiloEtiquetas = estiloWindowsXP()
-
 # Frame Inicio
-frameInicio = tk.Frame(ventana, bg="#f0f0f0")
-tk.Label(
-    frameInicio, 
-    text="Reproductor de música", 
-    **estiloEtiquetas
-).pack(pady=20)
+frameInicio = tk.Frame(ventana)
+frameInicio.pack(side=tk.TOP, anchor='nw', fill=tk.X) 
+
+tk.Label(frameInicio, text="Reproductor de música").pack(pady=20)
+
+frameBotones = tk.Frame(ventana, bg="#d3d3d3", width=150)  
+frameBotones.pack(side=tk.LEFT, fill=tk.Y)
+
+frameContenido = tk.Frame(ventana, bg="#f0f0f0")
+frameContenido.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
 tk.Button(
-    frameInicio, 
+    frameBotones, 
     text="Cargar Canciones", 
     command=cargarCanciones, 
-    width=20,
-    **estiloBotones
+    width=20
 ).pack(pady=10)
 
 tk.Button(
-    frameInicio, 
+    frameBotones, 
     text="Ir al Reproductor", 
     command=mostrarReproductor, 
-    width=20,
-    **estiloBotones
+    width=20
 ).pack(pady=10)
 
 tk.Button(
-    frameInicio, 
+    frameBotones, 
     text="Canciones en el repertorio", 
     command=mostrarListaCanciones, 
-    width=20,
-    **estiloBotones
+    width=20
 ).pack(pady=10)
 
 tk.Button(
-    frameInicio, 
+    frameBotones, 
     text="Acerca de", 
     command=mostrarAcercaDe, 
-    width=20,
-    **estiloBotones
+    width=20
 ).pack(pady=10)
 
-etiquetaEstado = tk.Label(frameInicio, text="", **estiloEtiquetas)
+etiquetaEstado = tk.Label(frameBotones, text="")
 etiquetaEstado.pack(pady=10)
 
 # --- Frame Reproductor ---
 frameReproductor = tk.Frame(ventana, bg="#f0f0f0")
+frameReproductor.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True) 
 etiquetaCancion = tk.Label(
     frameReproductor, 
     text="No hay canción seleccionada", 
-    **estiloEtiquetas
 )
 etiquetaCancion.pack(pady=20)
 
@@ -337,7 +257,6 @@ tk.Button(
     text="⏮ Anterior", 
     command=cancionAnterior, 
     width=12,
-    **estiloBotones
 ).pack(side=tk.LEFT, padx=5)
 
 tk.Button(
@@ -345,7 +264,6 @@ tk.Button(
     text="⏯ Play/Pause", 
     command=pausarCancion, 
     width=12,
-    **estiloBotones
 ).pack(side=tk.LEFT, padx=5)
 
 tk.Button(
@@ -353,14 +271,12 @@ tk.Button(
     text="⏭ Siguiente", 
     command=cancionSiguiente, 
     width=12,
-    **estiloBotones
 ).pack(side=tk.LEFT, padx=5)
 
 tk.Button(
     frameReproductor, 
     text="Regresar", 
     command=regresarInicio,
-    **estiloBotones
 ).pack(pady=20)
 
 progress = ttk.Progressbar(
@@ -371,7 +287,6 @@ progress = ttk.Progressbar(
 )
 progress.pack(pady=10)
 
-# Etiqueta de tiempo
 label_tiempo = ttk.Label(
     frameReproductor,
     text="00:00 / 00:00",
@@ -381,27 +296,25 @@ label_tiempo.pack()
 
 # --- Frame Canciones Ingresadas ---
 frameCancionesIngresadas = tk.Frame(ventana, bg="#f0f0f0")
+frameCancionesIngresadas.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True) 
 tk.Label(
     frameCancionesIngresadas, 
     text="Estas son las canciones en el repertorio.", 
-    **estiloEtiquetas
 ).pack(pady=10)
 
 # --- Frame Acerca de ---
 frameAcercaDe = tk.Frame(ventana, bg="#f0f0f0")
 tk.Label(
     frameAcercaDe, 
-    text="Reproductor de música - Estructura de datos.\nVersión 0.6.1\n"
+    text="Reproductor de música - Estructura de datos.\nVersión 0.6.2\n"
          "Desarrollado por Rodrigo Gabriel Pérez Vásquez, carnet 1576224\n"
          "Link de repositorio en Github: https://github.com/RodriGab18/Proyecto2EDI",
-    **estiloEtiquetas
 ).pack(pady=20)
 
 tk.Button(
     frameAcercaDe, 
     text="Regresar al inicio", 
     command=regresarInicio,
-    **estiloBotones
 ).pack(pady=10)
 
 frameInicio.pack()
