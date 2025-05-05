@@ -7,7 +7,9 @@ from mutagen.mp3 import MP3
 import pygame
 import os
 import webbrowser
-import time
+from PIL import Image, ImageTk
+import cv2
+import numpy as np
 
 # Lógica sobre reproducción
 
@@ -139,10 +141,102 @@ def enlaceGit():
 COLORES = {
     "fondo": "#2E0249",       
     "widgets": "#570A57",     
-    "botones": "#A91079",     
     "texto": "#F806CC",       
     "hover": "#3D0C5A"        
 }
+
+class VideoPlayer:
+    def __init__(self, parent, video_path):
+        self.parent = parent
+        self.video_path = video_path
+        self.label = tk.Label(parent)
+        self.label.pack()
+        
+        self.cap = cv2.VideoCapture(video_path)
+        self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        
+        self.delay = int(1000 / self.cap.get(cv2.CAP_PROP_FPS))
+        self.update()
+    
+    def update(self):
+        ret, frame = self.cap.read()
+        if ret:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(frame)
+            img_tk = ImageTk.PhotoImage(image=img)
+            
+            self.label.config(image=img_tk)
+            self.label.image = img_tk
+            self.label.after(self.delay, self.update)
+        else:
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            self.update()
+    
+    def stop(self):
+        self.cap.release()
+
+class TransparentVideoBackground:
+    def __init__(self, window, video_path, alpha=0.1):
+        self.window = window
+        self.alpha = alpha
+        
+        if not os.path.exists(video_path):
+            raise FileNotFoundError(f"Video no encontrado: {video_path}")
+        
+        self.cap = cv2.VideoCapture(video_path)
+        if not self.cap.isOpened():
+            raise ValueError("No se pudo abrir el video")
+            
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 2)
+        self.fps = self.cap.get(cv2.CAP_PROP_FPS)
+        self.delay = int(1000/self.fps) if self.fps else 30
+        
+        self.canvas = tk.Canvas(window, highlightthickness=0, bd=0)
+        self.canvas.pack(fill=tk.BOTH, expand=False)
+        
+        self.content_frame = tk.Frame(self.canvas, bg='')
+        self.content_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+        
+        self.update_video()
+        
+    def apply_transparency(self, frame):
+        """Aplica transparencia al frame del video"""
+        img = Image.fromarray(frame)
+        
+        if img.mode != 'RGBA':
+            img = img.convert('RGBA')
+            
+        data = np.array(img)
+        data[..., 3] = int(255 * self.alpha)  
+        return Image.fromarray(data)
+    
+    def update_video(self):
+        ret, frame = self.cap.read()
+        if ret:
+            win_width = self.window.winfo_width()
+            win_height = self.window.winfo_height()
+            if win_width > 0 and win_height > 0:
+                frame = cv2.resize(frame, (win_width, win_height))
+            
+            transparent_img = self.apply_transparency(frame)
+            
+            img_tk = ImageTk.PhotoImage(image=transparent_img)
+            
+            self.canvas.create_image(0, 0, image=img_tk, anchor=tk.NW)
+            self.canvas.image = img_tk
+            
+            if self.cap.get(cv2.CAP_PROP_POS_FRAMES) == self.cap.get(cv2.CAP_PROP_FRAME_COUNT):
+                self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            
+            self.window.after(30, self.update_video)
+        else:
+            self.cap.release()
+
+    def add_content_widget(self, widget):
+        """Añade widgets sobre el video"""
+        widget.pack(in_=self.content_frame)
+    
 # Funciones sobre el funcionamiento del reproductor.
 
 barra_progreso = None
@@ -234,44 +328,47 @@ ventana.title("Reproductor de Música")
 ventana.geometry("900x600")
 
 # Frame Inicio
-frameInicio = tk.Frame(ventana)
-frameInicio.pack(side=tk.TOP, anchor='nw', fill=tk.X) 
+frameInicio = tk.Frame(ventana, bg='')
+frameInicio.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-tk.Label(frameInicio).pack(pady=20)
+video_bg = TransparentVideoBackground(ventana, "C:/Users/rodri/Desktop/Trabajos Uni/3er. Semestre/Estructura de datos/Fondo.mp4", alpha=1)
 
-frameBotones = tk.Frame(ventana, bg="#d3d3d3", width=150)  
+
+frameBotones = tk.Frame(
+    ventana, 
+    bg="#d3d3d3",  
+    width=200,     
+    padx=10,       
+    pady=20        
+)
+frameBotones.pack_propagate(False) 
 frameBotones.pack(side=tk.LEFT, fill=tk.Y)
 
-frameContenido = tk.Frame(ventana, bg="#f0f0f0")
-frameContenido.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-tk.Button(
-    frameBotones, 
-    text="Cargar Canciones", 
-    command=cargarCanciones, 
-    width=20
-).pack(pady=10)
+boton_config = {
+    'master': frameBotones,
+    'font': ('Arial', 10),  
+    'bd': 0,                
+    'highlightthickness': 0,
+    'anchor': 'w',          
+    'width': 18,            
+    'pady': 6               
+}
+botones = [
+    ("Cargar Canciones", cargarCanciones),
+    ("Ir al Reproductor", mostrarReproductor),
+    ("Canciones en el repertorio", mostrarListaCanciones),
+    ("Acerca de", mostrarAcercaDe)
+]
 
-tk.Button(
-    frameBotones, 
-    text="Ir al Reproductor", 
-    command=mostrarReproductor, 
-    width=20
-).pack(pady=10)
-
-tk.Button(
-    frameBotones, 
-    text="Canciones en el repertorio", 
-    command=mostrarListaCanciones, 
-    width=20
-).pack(pady=10)
-
-tk.Button(
-    frameBotones, 
-    text="Acerca de", 
-    command=mostrarAcercaDe, 
-    width=20
-).pack(pady=10)
+for texto, comando in botones:
+    btn = tk.Button(
+        text=texto,
+        command=comando,
+        fg="black",
+        **boton_config
+    )
+    btn.pack(pady=6, fill=tk.X)
 
 etiquetaEstado = tk.Label(frameBotones, text="")
 etiquetaEstado.pack(pady=10)
@@ -310,7 +407,7 @@ tk.Button(
 ).pack(side=tk.LEFT, padx=5)
 
 frameProgreso = tk.Frame(frameReproductor, bg="#f0f0f0")
-frameProgreso.pack(fill=tk.X, pady=(10, 5), padx=20)
+frameProgreso.pack(pady=(10, 5), padx=20)
 
 barra_progreso = ttk.Progressbar(
     frameProgreso,
@@ -335,7 +432,7 @@ tk.Button(
 
 # --- Frame Canciones Ingresadas ---
 frameCancionesIngresadas = tk.Frame(ventana, bg="#f0f0f0")
-frameCancionesIngresadas.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True) 
+frameCancionesIngresadas.pack(side=tk.LEFT, fill=tk.BOTH, expand=False) 
 tk.Label(
     frameCancionesIngresadas, 
 ).pack(pady=10)
@@ -344,7 +441,7 @@ tk.Label(
 frameAcercaDe = tk.Frame(ventana, bg="#f0f0f0")
 tk.Label(
     frameAcercaDe, 
-    text="Reproductor de música - Estructura de datos.\nVersión 1.0\n"
+    text="Reproductor de música - Estructura de datos.\nVersión 1.1\n"
          "Desarrollado por Rodrigo Gabriel Pérez Vásquez, carnet 1576224\n"
 ).pack(pady=20)
 
