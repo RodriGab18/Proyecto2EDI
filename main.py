@@ -245,22 +245,28 @@ actualizando_progreso = False
 
 def cargarCanciones():
     try:
-        carpeta = filedialog.askdirectory(title="Seleccionar carpeta de canciones")
-        if not carpeta:
+        archivos = filedialog.askopenfilenames(
+            title="Seleccionar canciones",
+            filetypes=[("Archivos MP3", "*.mp3"), ("Todos los archivos", "*.*")]
+        )
+        
+        if not archivos:
             return
         
         canciones_cargadas = 0
-        for archivo in os.listdir(carpeta):
-            if archivo.endswith('.mp3'):
-                ruta = os.path.join(carpeta, archivo)
-                try:
-                    cancion = obtenerMetadata(ruta)
-                    listaReproduccion.agregar(cancion)
-                    canciones_cargadas += 1
-                except Exception as e:
-                    print(f"Error al cargar {archivo}: {str(e)}")
+        for ruta in archivos:
+            try:
+                cancion = obtenerMetadata(ruta)
+                listaReproduccion.agregar(cancion)
+                canciones_cargadas += 1
+            except Exception as e:
+                print(f"Error al cargar {ruta}: {str(e)}")
         
         etiquetaEstado.config(text=f"{canciones_cargadas} canciones cargadas")
+        
+        if frameCancionesIngresadas.winfo_ismapped():
+            mostrarListaCanciones()
+            
     except Exception as e:
         etiquetaEstado.config(text=f"Error: {str(e)}")
 
@@ -441,7 +447,7 @@ tk.Label(
 frameAcercaDe = tk.Frame(ventana, bg="#f0f0f0")
 tk.Label(
     frameAcercaDe, 
-    text="Reproductor de música - Estructura de datos.\nVersión 1.1\n"
+    text="Reproductor de música - Estructura de datos.\nVersión 1.1.1\n"
          "Desarrollado por Rodrigo Gabriel Pérez Vásquez, carnet 1576224\n"
 ).pack(pady=20)
 
